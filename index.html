@@ -521,6 +521,7 @@ function cardHTML(o, i) {
     <div class="action-row">
       ${!o.noticeId.startsWith('d')?`<a class="link-btn" href="https://sam.gov/opp/${o.noticeId}/view" target="_blank">↗ SAM.gov 원문 보기</a>`:''}
       <button class="ai-btn" onclick="aiAnalyze(${i},event)">✦ AI 공고 분석</button>
+      <button class="ai-btn" style="background:#0d2010;border-color:#1a4020;color:#4ade80;" onclick="openPWSAnalyzer(${i},event)">📋 PWS/SOW 분석</button>
     </div>
     <div class="ai-box" id="ai-${i}"></div>
   </div>
@@ -668,6 +669,256 @@ function renderPagination() {
   document.getElementById('pagination').innerHTML = html;
 }
 
+
+// ── PWS/SOW 분석기 ──
+let pwsType = 'full';
+let pwsOppIdx = -1;
+
+function openPWSAnalyzer(i, e) {
+  e.stopPropagation();
+  pwsOppIdx = i;
+  const o = DATA[i];
+  document.getElementById('pws-opp-title').textContent = o.title || '';
+  const samLink = o.noticeId && !o.noticeId.startsWith('d')
+    ? 'https://sam.gov/opp/' + o.noticeId + '/view'
+    : 'https://sam.gov/search/?index=opp&q=411th';
+  document.getElementById('pws-sam-link').href = samLink;
+  document.getElementById('pws-text').value = '';
+  document.getElementById('pws-char-count').textContent = '0자';
+  document.getElementById('pws-result').style.display = 'none';
+  document.getElementById('pws-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closePWSModal() {
+  document.getElementById('pws-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function selectPWSType(btn, type) {
+  pwsType = type;
+  document.querySelectorAll('.pws-type-btn').forEach(b => {
+    b.style.borderColor = '#243040';
+    b.style.background  = '#070a0e';
+    b.style.color       = '#6a85a0';
+  });
+  btn.style.borderColor = '#4ade80';
+  btn.style.background  = '#0d2010';
+  btn.style.color       = '#4ade80';
+}
+
+function runPWSAnalysis() {
+  const text = document.getElementById('pws-text').value.trim();
+  if (!text) { alert('PWS/SOW 텍스트를 먼저 붙여넣어 주세요.'); return; }
+
+  const o = pwsOppIdx >= 0 ? DATA[pwsOppIdx] : {};
+  const resultBox = document.getElementById('pws-result');
+  const resultContent = document.getElementById('pws-result-content');
+  resultBox.style.display = 'block';
+  resultContent.textContent = '분석 중...';
+
+  const prompts = {
+    full: `당신은 주한미군(USFK) 계약 전문가입니다. 아래 PWS/SOW를 한국 컨트랙터 입장에서 분석해주세요.
+
+공고: ${o.title || ''}
+공고번호: ${o.solicitationNumber || ''}
+
+[PWS/SOW 내용]
+${text.slice(0, 4000)}
+
+아래 항목을 한국어로 분석해주세요:
+
+📋 작업 범위 요약
+(핵심 작업 내용 3-5줄)
+
+👥 필요 인력 & 자격요건
+(필요한 인원, 자격증, 경험 등)
+
+📅 이행 일정 & 기간
+(계약 기간, 옵션 기간, 주요 마일스톤)
+
+💰 가격 산정 핵심 포인트
+(원가 계산 시 반드시 고려해야 할 항목들)
+
+⚠️ 주요 리스크 & 주의사항
+(계약 이행 시 위험 요소)
+
+📋 제안서 필수 포함 항목
+(평가 기준, 제출 서류 목록)
+
+✅ 입찰 권고
+(참여 추천 여부 및 핵심 전략)`,
+
+    scope: `아래 PWS/SOW에서 작업 범위(Scope of Work)만 한국어로 요약해주세요.
+핵심 작업, 장소, 빈도, 특이사항 위주로 정리해주세요.
+
+[PWS/SOW]
+${text.slice(0, 4000)}`,
+
+    price: `아래 PWS/SOW를 분석해서 가격 산정 시 반드시 고려해야 할 항목들을 한국어로 정리해주세요.
+인건비, 장비, 재료비, 간접비, 리스크 마진 등 항목별로 체크리스트 형태로 작성해주세요.
+
+[PWS/SOW]
+${text.slice(0, 4000)}`,
+
+    risk: `아래 PWS/SOW에서 한국 컨트랙터가 주의해야 할 리스크와 함정 조항을 분석해주세요.
+페널티 조항, 까다로운 요구사항, 모호한 조건 등을 한국어로 정리해주세요.
+
+[PWS/SOW]
+${text.slice(0, 4000)}`,
+
+    checklist: `아래 PWS/SOW를 분석해서 제안서 제출 시 필요한 서류 체크리스트를 만들어주세요.
+필수 서류, 자격 증빙, 기술 제안서 구성 등을 체크리스트 형태로 한국어로 작성해주세요.
+
+[PWS/SOW]
+${text.slice(0, 4000)}`
+  };
+
+  const result = analyzePWSLocal(text, o, pwsType);
+  resultContent.textContent = result;
+}
+
+function analyzePWSLocal(text, o, type) {
+  const t = text.toLowerCase();
+
+  // 키워드 추출
+  const hasHVAC     = t.includes('hvac') || t.includes('heating') || t.includes('cooling');
+  const hasSecurity = t.includes('security') || t.includes('guard') || t.includes('armed');
+  const hasGrounds  = t.includes('grounds') || t.includes('mowing') || t.includes('landscaping');
+  const hasCleaning = t.includes('cleaning') || t.includes('janitorial') || t.includes('custodial');
+  const hasIT       = t.includes('information technology') || t.includes('network') || t.includes('software');
+  const hasPest     = t.includes('pest') || t.includes('rodent') || t.includes('insect');
+
+  const period = t.includes('option year') ? '기본 1년 + 옵션기간 포함' :
+                 t.includes('12 month') || t.includes('twelve month') ? '12개월' :
+                 t.includes('24 month') ? '24개월' : '공고문에서 확인 필요';
+
+  const hasInspection = t.includes('inspection') || t.includes('quality');
+  const hasEmergency  = t.includes('emergency') || t.includes('24/7') || t.includes('on-call');
+  const hasClearance  = t.includes('security clearance') || t.includes('national agency check');
+  const hasKFN        = t.includes('kfn') || t.includes('korea forces network');
+
+  const services = [hasHVAC&&'HVAC/공조 시스템', hasSecurity&&'경비/보안', hasGrounds&&'조경/환경관리',
+    hasCleaning&&'청소/시설관리', hasIT&&'IT/네트워크', hasPest&&'해충방제'].filter(Boolean);
+
+  if (type === 'scope') {
+    return `📋 작업 범위 요약
+
+주요 서비스: ${services.length ? services.join(', ') : '공고문 확인 필요'}
+계약 기간: ${period}
+긴급 대응: ${hasEmergency ? '24/7 On-call 대응 필요' : '일반 근무시간 내 대응'}
+품질 검사: ${hasInspection ? '정기 검사 및 보고 요구' : '해당 없음'}
+보안 허가: ${hasClearance ? '보안 클리어런스 필요 — 사전 확인 필수' : '일반 수준'}
+
+※ 정확한 작업 범위는 SOW 원문 전체를 Claude.ai에 붙여넣어 분석하세요.`;
+  }
+
+  if (type === 'price') {
+    return `💰 가격 산정 체크리스트
+
+인건비
+☐ 직접 인건비 (작업별 인원 × 시간)
+☐ ${hasEmergency ? '야간/주말/공휴일 On-call 수당' : '정규 근무시간 인건비'}
+☐ 4대보험, 퇴직금 (한국 기준)
+☐ 영문 소통 가능 인력 추가 비용
+
+장비 & 재료
+☐ ${hasHVAC ? 'HVAC 부품 및 소모품' : '작업별 소모품'}
+☐ 공구 및 장비 구매/렌탈 비용
+☐ 안전 장비 (PPE)
+
+간접비
+☐ 보험료 (General Liability 필수)
+☐ 교통비 (부대 내 이동)
+☐ 관리비 및 일반관리비
+
+리스크 마진
+☐ ${hasEmergency ? '긴급 출동 대응 버퍼 (10-15%)' : '예비비 (5-10%)'}
+☐ 환율 리스크 (달러 계약)
+☐ 물가 상승분`;
+  }
+
+  if (type === 'risk') {
+    return `⚠️ 리스크 & 주의사항 분석
+
+🔴 고위험
+${hasClearance ? '• 보안 클리어런스 필요 — 직원 전체 신원조회 필수, 시간 소요
+' : ''}${hasEmergency ? '• 24/7 On-call 조항 — 야간/주말 대응 인력 확보 필수
+' : ''}• 달러 계약 — 환율 변동 리스크 관리 필요
+• 성과 미달 시 계약 해지 조항 확인 필수
+
+🟡 중위험
+• 품질 검사(QC) 기준 미달 시 페널티 가능성
+• 부대 내 출입 허가 지연 리스크
+• 자재/부품 조달 지연 시 이행 차질
+
+🟢 관리 가능
+• SAM.gov 등록 갱신 주기 관리
+• 월별/분기별 보고서 제출 의무`;
+  }
+
+  if (type === 'checklist') {
+    return `📋 제출 서류 체크리스트
+
+필수 서류
+☐ 제안서 표지 (Cover Page)
+☐ 기술 제안서 (Technical Proposal)
+☐ 가격 제안서 (Price Proposal) — 별도 봉투
+☐ SAM.gov 등록 확인서
+☐ 사업자등록증 + 영문 번역본
+
+실적 증빙
+☐ 유사 계약 수행 실적 (최근 3년, 영문)
+☐ 계약번호 및 발주처 연락처 포함
+☐ ${hasSecurity ? '경비업 허가증 (한국 경비업법)' : '관련 업종 허가증/자격증'}
+
+인력 증빙
+☐ 핵심 인력 이력서 (영문, Key Personnel)
+☐ ${hasClearance ? '보안 클리어런스 관련 서류' : '관련 자격증 사본'}
+☐ 조직도 (영문)
+
+재무 증빙
+☐ 재무제표 (최근 2-3년)
+☐ 보험증서 (General Liability Insurance)
+☐ 이행보증서 (Performance Bond) — 금액 확인`;
+  }
+
+  // full analysis
+  return `📋 작업 범위 요약
+주요 서비스: ${services.length ? services.join(', ') : '시설 지원 서비스'}
+계약 기간: ${period}
+긴급 대응: ${hasEmergency ? '24/7 On-call 대응 필수' : '정규 시간 내 대응'}
+
+👥 필요 인력 & 자격요건
+• ${hasSecurity ? '경비업 허가 보유 업체 필수' : '관련 분야 전문 인력'}
+• ${hasClearance ? '⚠️ 보안 클리어런스 필요 — 사전 확인 필수' : '일반 보안 수준'}
+• 영어 소통 가능 현장 대표자 필수
+
+📅 이행 일정
+• 계약 기간: ${period}
+• ${hasInspection ? '정기 품질 검사 및 보고서 제출 의무' : '월별 실적 보고'}
+
+💰 가격 산정 핵심
+• 인건비: 직접인건비 + On-call 수당 + 4대보험
+• ${hasHVAC ? 'HVAC 부품/소모품 재료비' : '작업별 소모품 및 장비비'}
+• 보험료 + 관리비 + 리스크 마진 10-15%
+
+⚠️ 주요 리스크
+• ${hasClearance ? '보안 클리어런스 취득 시간 — 조기 준비 필수' : '부대 출입 허가 절차'}
+• ${hasEmergency ? '24/7 On-call 대응 인력 확보' : '품질 기준 미달 페널티'}
+• 달러 계약 환율 변동 리스크
+
+📋 제출 서류
+☐ 기술 제안서 + 가격 제안서 (분리 제출)
+☐ 유사 실적 증빙 (영문, 최근 3년)
+☐ 핵심 인력 이력서 (영문)
+☐ SAM.gov 등록 + 보험증서
+
+✅ 입찰 권고
+${services.length ? services[0] + ' 분야 실적 보유 시 경쟁력 있음.' : '공고 내용 검토 후 결정'}
+SOW 전문을 Claude.ai(claude.ai)에 붙여넣으면 더 정밀한 분석이 가능합니다.`;
+}
+
 // ── UTILS ──
 function copyCard(i) {
   const o = DATA[i];
@@ -712,5 +963,67 @@ function toast(m) {
 
 init();
 </script>
+
+<!-- PWS/SOW 분석 모달 -->
+<div id="pws-modal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="max-width:760px;margin:40px auto;background:#0e1318;border:1px solid #243040;border-top:3px solid #4ade80;padding:28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:#4ade80;letter-spacing:1.5px;margin-bottom:4px;">📋 PWS / SOW 분석기</div>
+        <div id="pws-opp-title" style="font-size:14px;font-weight:600;color:#dde4ed;"></div>
+      </div>
+      <button onclick="closePWSModal()" style="background:none;border:1px solid #243040;color:#6a85a0;padding:6px 12px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;">✕ 닫기</button>
+    </div>
+
+    <!-- STEP 1 -->
+    <div style="background:#070a0e;border:1px solid #1c2530;padding:16px;margin-bottom:14px;">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#f5c842;letter-spacing:1px;margin-bottom:10px;">STEP 1 · SAM.gov에서 PWS/SOW 가져오기</div>
+      <a id="pws-sam-link" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#00e5a0;color:#000;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;padding:8px 14px;text-decoration:none;margin-bottom:10px;">↗ SAM.gov 원문 열기</a>
+      <div style="font-size:12px;color:#6a85a0;line-height:1.8;">
+        1. 위 버튼 클릭 → SAM.gov 공고 페이지 열림<br>
+        2. 하단 <b style="color:#dde4ed;">Attachments</b> 섹션에서 PWS / SOW / RFP 파일 찾기<br>
+        3. PDF 열기 → 전체 텍스트 선택(Ctrl+A) → 복사(Ctrl+C)
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div style="background:#070a0e;border:1px solid #1c2530;padding:16px;margin-bottom:14px;">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#f5c842;letter-spacing:1px;margin-bottom:10px;">STEP 2 · 아래에 붙여넣기</div>
+      <textarea id="pws-text" placeholder="PWS / SOW 텍스트를 여기에 붙여넣으세요 (Ctrl+V)..." 
+        style="width:100%;height:180px;background:#0a0d12;border:1px solid #243040;color:#dde4ed;font-family:'DM Mono',monospace;font-size:12px;padding:12px;outline:none;resize:vertical;line-height:1.6;"
+        oninput="document.getElementById('pws-char-count').textContent=this.value.length.toLocaleString()+'자'"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <span id="pws-char-count" style="font-family:'DM Mono',monospace;font-size:10px;color:#4a6080;">0자</span>
+        <button onclick="document.getElementById('pws-text').value='';document.getElementById('pws-char-count').textContent='0자';" 
+          style="background:none;border:1px solid #243040;color:#4a6080;font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;cursor:pointer;">초기화</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div style="background:#070a0e;border:1px solid #1c2530;padding:16px;margin-bottom:18px;">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#f5c842;letter-spacing:1px;margin-bottom:10px;">STEP 3 · 분석 유형 선택</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <button class="pws-type-btn active" onclick="selectPWSType(this,'full')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #4ade80;background:#0d2010;color:#4ade80;cursor:pointer;">전체 종합 분석</button>
+        <button class="pws-type-btn" onclick="selectPWSType(this,'scope')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #243040;background:#070a0e;color:#6a85a0;cursor:pointer;">작업 범위 요약</button>
+        <button class="pws-type-btn" onclick="selectPWSType(this,'price')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #243040;background:#070a0e;color:#6a85a0;cursor:pointer;">가격 산정 포인트</button>
+        <button class="pws-type-btn" onclick="selectPWSType(this,'risk')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #243040;background:#070a0e;color:#6a85a0;cursor:pointer;">리스크 분석</button>
+        <button class="pws-type-btn" onclick="selectPWSType(this,'checklist')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #243040;background:#070a0e;color:#6a85a0;cursor:pointer;">제출 서류 체크리스트</button>
+      </div>
+    </div>
+
+    <button onclick="runPWSAnalysis()" 
+      style="width:100%;background:#4ade80;color:#000;border:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;padding:13px;cursor:pointer;letter-spacing:1px;transition:opacity .2s;"
+      onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+      ✦ 분석 시작
+    </button>
+
+    <!-- 결과 -->
+    <div id="pws-result" style="display:none;margin-top:18px;background:#07101a;border:1px solid #1a3050;padding:18px;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4d9fff;letter-spacing:1.5px;margin-bottom:12px;">✦ PWS/SOW 분석 결과</div>
+      <div id="pws-result-content" style="font-size:13px;color:#8aaccc;line-height:1.8;white-space:pre-wrap;"></div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
