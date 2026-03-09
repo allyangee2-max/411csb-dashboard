@@ -1,3 +1,8 @@
+bash
+
+cat /mnt/user-data/outputs/411csb-dashboard.html
+출력
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -414,8 +419,12 @@ function setConnected(on) {
 async function doSearch(p=0) {
   if (!apiKey) { toast('API Key를 먼저 입력하세요'); return; }
   PAGE = p;
-  const from = document.getElementById('c-from').value.replace(/-/g,'/');
-  const to   = document.getElementById('c-to').value.replace(/-/g,'/');
+  const fromRaw = document.getElementById('c-from').value; // yyyy-MM-dd
+  const toRaw   = document.getElementById('c-to').value;
+  const [fy,fm,fd] = fromRaw.split('-');
+  const [ty,tm,td] = toRaw.split('-');
+  const from = `${fm}/${fd}/${fy}`; // MM/dd/yyyy
+  const to   = `${tm}/${td}/${ty}`;
   const type = document.getElementById('c-type').value;
   const kw   = document.getElementById('c-kw').value.trim();
 
@@ -842,7 +851,9 @@ function analyzePWSLocal(text, o, type) {
     return `⚠️ 리스크 & 주의사항 분석
 
 🔴 고위험
-${hasClearance ? '• 보안 클리어런스 필요 — 직원 전체 신원조회 필수, 시간 소요\n' : ''}${hasEmergency ? '• 24/7 On-call 조항 — 야간/주말 대응 인력 확보 필수\n' : ''}• 달러 계약 — 환율 변동 리스크 관리 필요
+${hasClearance ? '• 보안 클리어런스 필요 — 직원 전체 신원조회 필수, 시간 소요
+' : ''}${hasEmergency ? '• 24/7 On-call 조항 — 야간/주말 대응 인력 확보 필수
+' : ''}• 달러 계약 — 환율 변동 리스크 관리 필요
 • 성과 미달 시 계약 해지 조항 확인 필수
 
 🟡 중위험
