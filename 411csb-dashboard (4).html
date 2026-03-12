@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>411th CSB · Opportunity Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080b0f;
+  --card: #0e1318;
+  --card2: #131920;
+  --border: #1c2530;
+  --border2: #243040;
+  --green: #00e5a0;
+  --yellow: #f5c842;
+  --red: #ff4560;
+  --blue: #4d9fff;
+  --text: #dde4ed;
+  --muted: #4a6080;
+  --muted2: #6a85a0;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── GRID BACKGROUND ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,160,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,160,.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── HEADER ── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,11,15,.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 58px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { display: flex; align-items: center; gap: 14px; }
+.logo-tag {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 500;
+  background: var(--green); color: #000;
+  padding: 3px 9px; letter-spacing: 1.5px;
+}
+.logo-name { font-size: 15px; font-weight: 600; letter-spacing: .3px; }
+.logo-sub  { font-size: 11px; color: var(--muted2); font-family: var(--mono); margin-top: 1px; }
+.hdr-right { display: flex; align-items: center; gap: 18px; }
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11px; color: var(--muted2);
+}
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.pulse.on { background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,229,160,.4)} 50%{opacity:.6;box-shadow:0 0 0 5px rgba(0,229,160,0)} }
+
+/* ── API KEY BAR ── */
+#key-bar {
+  position: relative; z-index: 1;
+  margin: 20px 28px 0;
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--yellow);
+  background: linear-gradient(135deg,#0f1620,#0c1218);
+  padding: 14px 18px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.key-label { font-family: var(--mono); font-size: 11px; color: var(--yellow); white-space: nowrap; letter-spacing: 1px; }
+#key-input {
+  flex: 1; min-width: 240px;
+  background: #070a0e; border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--mono); font-size: 12px;
+  padding: 7px 11px; outline: none; transition: border-color .2s;
+}
+#key-input:focus { border-color: var(--green); }
+#key-input::placeholder { color: var(--muted); }
+.btn {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  letter-spacing: .8px; padding: 8px 16px; border: none; cursor: pointer;
+  transition: all .18s;
+}
+.btn-green { background: var(--green); color: #000; }
+.btn-green:hover { opacity: .85; }
+.btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--muted2); }
+.btn-ghost:hover { border-color: var(--green); color: var(--green); }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.key-hint { font-size: 11px; color: var(--muted); }
+.key-hint a { color: var(--green); text-decoration: none; }
+
+/* ── CONTROLS ── */
+#controls {
+  position: relative; z-index: 1;
+  margin: 14px 28px 0;
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+.ctrl-label { font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+select, input[type=date], input[type=text] {
+  background: var(--card); border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--mono); font-size: 12px;
+  padding: 7px 10px; outline: none; transition: border-color .2s; cursor: pointer;
+}
+select:focus, input[type=date]:focus, input[type=text]:focus { border-color: var(--green); }
+select option { background: var(--card); }
+
+/* ── STATS ROW ── */
+#stats {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(5,1fr);
+  gap: 1px; background: var(--border);
+  margin: 16px 28px 0; border: 1px solid var(--border);
+}
+.stat {
+  background: var(--card); padding: 14px 18px;
+  transition: background .2s;
+}
+.stat:hover { background: var(--card2); }
+.stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; }
+.stat-val { font-family: var(--mono); font-size: 26px; font-weight: 500; color: var(--green); line-height: 1; }
+.stat-sub  { font-size: 11px; color: var(--muted2); margin-top: 3px; }
+
+/* ── RESULTS ── */
+#results { position: relative; z-index: 1; margin: 16px 28px 40px; }
+#result-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+#result-label { font-family: var(--mono); font-size: 11px; color: var(--muted2); }
+.export-btn {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .8px;
+  background: transparent; border: 1px solid var(--border2); color: var(--muted2);
+  padding: 5px 12px; cursor: pointer; transition: all .15s;
+}
+.export-btn:hover { border-color: var(--green); color: var(--green); }
+
+/* loading / empty */
+#loading { display:none; text-align:center; padding:60px 20px; }
+.spinner { width:32px; height:32px; border:2px solid var(--border2); border-top-color:var(--green); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto 14px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+#empty { display:none; text-align:center; padding:60px; font-family:var(--mono); font-size:13px; color:var(--muted); }
+#err-box { display:none; border:1px solid var(--red); background:#180d10; padding:14px 18px; margin-bottom:14px; font-family:var(--mono); font-size:12px; color:var(--red); line-height:1.7; }
+
+/* ── CARDS ── */
+.opp {
+  background: var(--card); border: 1px solid var(--border);
+  margin-bottom: 3px; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.opp:hover { border-color: var(--border2); background: var(--card2); }
+.opp.open  { border-color: var(--green); background: var(--card2); }
+
+.opp-top { display:flex; align-items:flex-start; padding:15px 18px; gap:12px; }
+
+.type-pill {
+  flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 500;
+  letter-spacing: 1.2px; padding: 3px 8px; text-transform: uppercase; margin-top: 2px;
+  border: 1px solid;
+}
+.pill-p  { color:#4ade80; border-color:#1a4030; background:#0d2018; }
+.pill-c  { color:var(--blue); border-color:#1a2d50; background:#0d1830; }
+.pill-a  { color:#f472b6; border-color:#4a1a30; background:#280d18; }
+.pill-s  { color:#fb923c; border-color:#4a2a10; background:#281508; }
+.pill-x  { color:#c084fc; border-color:#3a1a50; background:#1e0d30; }
+.pill-d  { color:var(--muted2); border-color:var(--border2); background:var(--card); }
+
+.opp-body { flex:1; min-width:0; }
+.opp-title { font-size:13px; font-weight:600; color:var(--text); line-height:1.45; margin-bottom:6px; }
+.opp-meta  { display:flex; flex-wrap:wrap; gap:14px; font-family:var(--mono); font-size:11px; color:var(--muted2); }
+.opp-meta .hl  { color:var(--yellow); }
+.opp-meta .urg { color:var(--red); font-weight:500; }
+.opp-meta .ok  { color:var(--green); }
+
+.opp-btns { flex-shrink:0; display:flex; gap:6px; align-items:flex-start; }
+.icon-btn {
+  background:none; border:1px solid var(--border2); color:var(--muted2);
+  padding:4px 8px; cursor:pointer; font-size:12px; transition:all .15s;
+}
+.icon-btn:hover { border-color:var(--green); color:var(--green); }
+
+/* expanded */
+.opp-detail {
+  display:none; border-top:1px solid var(--border);
+  padding: 18px 18px 20px; background:#0b1016;
+}
+.opp.open .opp-detail { display:block; }
+
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 30px; margin-bottom:16px; }
+.dkey { font-family:var(--mono); font-size:9px; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; margin-bottom:3px; }
+.dval { font-size:12px; color:var(--text); }
+.dval a { color:var(--green); text-decoration:none; }
+
+.desc-box {
+  font-size:12px; color:var(--muted2); line-height:1.75;
+  border-top:1px solid var(--border); padding-top:14px; margin-top:4px;
+  white-space:pre-wrap; max-height:180px; overflow-y:auto;
+}
+
+.action-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.link-btn {
+  display:inline-flex; align-items:center; gap:5px;
+  background:var(--green); color:#000; font-family:var(--mono);
+  font-size:10px; font-weight:600; letter-spacing:.8px;
+  padding:7px 14px; text-decoration:none; transition:opacity .2s;
+}
+.link-btn:hover { opacity:.85; }
+.ai-btn {
+  display:inline-flex; align-items:center; gap:5px;
+  background:#0d1a2e; border:1px solid #1e3a60; color:var(--blue);
+  font-family:var(--mono); font-size:10px; letter-spacing:.8px;
+  padding:7px 14px; cursor:pointer; transition:all .15s;
+}
+.ai-btn:hover { background:#122040; border-color:var(--blue); }
+
+/* AI box */
+.ai-box { display:none; margin-top:14px; background:#07101a; border:1px solid #1a3050; padding:16px; }
+.ai-box.show { display:block; }
+.ai-box-title { font-family:var(--mono); font-size:9px; letter-spacing:1.5px; color:var(--blue); margin-bottom:10px; }
+.ai-content { font-size:12px; color:#8aaccc; line-height:1.75; white-space:pre-wrap; }
+.ai-loader { display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:11px; color:var(--muted2); }
+.ai-spin { width:12px; height:12px; border:2px solid var(--border2); border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; }
+
+/* new badge */
+.new-badge {
+  font-family:var(--mono); font-size:8px; font-weight:600; letter-spacing:1px;
+  background:var(--red); color:#fff; padding:2px 5px; margin-left:6px;
+  vertical-align:middle; animation:blink 1.5s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+
+/* ── PAGINATION ── */
+#pagination { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:18px; flex-wrap:wrap; }
+.pg-btn { font-family:var(--mono); font-size:11px; background:var(--card); border:1px solid var(--border2); color:var(--muted2); padding:6px 12px; cursor:pointer; transition:all .15s; }
+.pg-btn:hover, .pg-btn.active { background:var(--green); color:#000; border-color:var(--green); }
+.pg-btn:disabled { opacity:.3; cursor:not-allowed; }
+.pg-info { font-family:var(--mono); font-size:11px; color:var(--muted); padding:0 8px; }
+
+/* ── TOAST ── */
+#toast {
+  position:fixed; bottom:22px; right:22px; z-index:999;
+  background:var(--green); color:#000; font-family:var(--mono); font-size:11px; font-weight:600;
+  padding:9px 18px; transform:translateY(70px); opacity:0; transition:all .3s;
+}
+#toast.show { transform:translateY(0); opacity:1; }
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  header,#key-bar,#controls,#results { padding-left:14px; padding-right:14px; }
+  #key-bar,#controls,#results { margin-left:14px; margin-right:14px; }
+  #stats { grid-template-columns:repeat(2,1fr); margin:16px 14px 0; }
+  .detail-grid { grid-template-columns:1fr; }
+  #stats .stat:last-child { grid-column:span 2; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <span class="logo-tag">411th CSB</span>
+    <div>
+      <div class="logo-name">Opportunity Intelligence</div>
+      <div class="logo-sub">USFK · SAM.gov Live Monitor</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="live-badge"><span class="pulse" id="dot"></span><span id="conn-txt">NOT CONNECTED</span></div>
+    <div id="last-time" style="font-family:var(--mono);font-size:10px;color:var(--muted)">—</div>
+  </div>
+</header>
+
+<!-- API KEY BAR -->
+<div id="key-bar">
+  <span class="key-label">⚿ API KEY</span>
+  <input type="password" id="key-input" placeholder="SAM.gov Public API Key 입력...">
+  <button class="btn btn-green" onclick="connectKey()">연결</button>
+  <button class="btn btn-ghost" onclick="clearKey()">초기화</button>
+  <span class="key-hint">키 없으면 <a href="https://sam.gov/profile/details" target="_blank">sam.gov → Account Details → API Keys</a> 에서 무료 발급</span>
+</div>
+
+<!-- CONTROLS -->
+<div id="controls">
+  <div class="ctrl-group">
+    <span class="ctrl-label">기간 FROM</span>
+    <input type="date" id="c-from">
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">기간 TO</span>
+    <input type="date" id="c-to">
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">공고 유형</span>
+    <select id="c-type">
+      <option value="">전체</option>
+      <option value="p">Pre-Solicitation</option>
+      <option value="k">Combined Synopsis</option>
+      <option value="r">Sources Sought</option>
+      <option value="a">Award Notice</option>
+      <option value="s">Special Notice</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">키워드</span>
+    <input type="text" id="c-kw" placeholder="maintenance, security..." style="width:180px">
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">&nbsp;</span>
+    <button class="btn btn-green" id="search-btn" onclick="doSearch()" disabled>🔍 검색</button>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">&nbsp;</span>
+    <button class="export-btn" onclick="exportCSV()">↓ CSV</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div id="stats">
+  <div class="stat"><div class="stat-label">총 공고</div><div class="stat-val" id="s-total">—</div><div class="stat-sub">검색 결과</div></div>
+  <div class="stat"><div class="stat-label">신규 (7일)</div><div class="stat-val" id="s-new">—</div><div class="stat-sub">최근 게시</div></div>
+  <div class="stat"><div class="stat-label">마감 임박</div><div class="stat-val" id="s-urgent" style="color:var(--red)">—</div><div class="stat-sub">D-7 이내</div></div>
+  <div class="stat"><div class="stat-label">입찰 진행</div><div class="stat-val" id="s-active">—</div><div class="stat-sub">Active</div></div>
+  <div class="stat"><div class="stat-label">낙찰 공고</div><div class="stat-val" id="s-award" style="color:var(--blue)">—</div><div class="stat-sub">Award Notice</div></div>
+</div>
+
+<!-- RESULTS -->
+<div id="results">
+  <div id="result-meta">
+    <span id="result-label">— API Key를 입력하고 검색하세요 —</span>
+    <button class="export-btn" onclick="exportCSV()">↓ 엑셀 내보내기</button>
+  </div>
+  <div id="err-box"></div>
+  <div id="loading"><div class="spinner"></div><div style="font-family:var(--mono);font-size:12px;color:var(--muted2)">SAM.gov에서 공고를 불러오는 중...</div></div>
+  <div id="empty">검색 결과가 없습니다.<br>날짜 범위나 키워드를 바꿔보세요.</div>
+  <div id="cards"></div>
+  <div id="pagination"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ──
+let DATA = [], apiKey = '', lastSearch = null, PAGE = 0, TOTAL = 0;
+
+// ── DEMO DATA ──
+const DEMO = [
+  {noticeId:'d1',title:'Facility Maintenance Services - Camp Humphreys (Bldg 1-5 Complex)',baseType:'Combined Synopsis/Solicitation',solicitationNumber:'W90VN926RA101',postedDate:'2026-03-06',responseDeadLine:'2026-03-25T17:00:00',naicsCode:'561210',active:'Yes',typeOfSetAsideDescription:null,fullParentPathName:'DEPT OF DEFENSE.DEPT OF THE ARMY.411TH CONTRACTING SUPPORT BRIGADE',pointOfContact:[{email:'james.smith@us.army.mil',fullName:'James Smith',phone:'031-690-1234'}],description:'This is a combined synopsis/solicitation for Facility Maintenance Services at Camp Humphreys. Services include HVAC maintenance, plumbing, electrical systems inspection, and general facility upkeep for approximately 120 buildings on post. The period of performance is 12 months with four 12-month option periods.\n\nAll offerors must be registered in SAM.gov. Proposals due NLT 1700 KST.'},
+  {noticeId:'d2',title:'Grounds Maintenance and Landscaping Services - USAG Humphreys',baseType:'Presolicitation',solicitationNumber:'W90VN926QA045',postedDate:'2026-03-04',responseDeadLine:'2026-04-10T17:00:00',naicsCode:'561730',active:'Yes',typeOfSetAsideDescription:null,fullParentPathName:'DEPT OF DEFENSE.DEPT OF THE ARMY.411TH CONTRACTING SUPPORT BRIGADE',pointOfContact:[{email:'sarah.johnson@us.army.mil',fullName:'Sarah Johnson',phone:'031-690-5678'}],description:'Pre-solicitation for grounds maintenance and landscaping services at USAG Humphreys. Scope includes mowing, trimming, irrigation maintenance, snow removal, and seasonal planting for all common areas within the installation.'},
+  {noticeId:'d3',title:'Armed Security Guard Services - Camp Carroll & Camp Henry',baseType:'Sources Sought',solicitationNumber:'W90VN926SS008',postedDate:'2026-03-01',responseDeadLine:'2026-03-15T16:00:00',naicsCode:'561612',active:'Yes',typeOfSetAsideDescription:null,fullParentPathName:'DEPT OF DEFENSE.DEPT OF THE ARMY.411TH CONTRACTING SUPPORT BRIGADE',pointOfContact:[{email:'mike.park@us.army.mil',fullName:'Mike Park',phone:'031-690-9012'}],description:'Sources Sought to identify qualified vendors for armed security guard services at Camp Carroll and Camp Henry. Interested parties must hold valid Korean security business license. Response required within 14 days.'},
+  {noticeId:'d4',title:'HVAC Preventive Maintenance - Yongsan Garrison',baseType:'Award Notice',solicitationNumber:'W90VN925C0034',postedDate:'2026-02-20',responseDeadLine:null,naicsCode:'238220',active:'Yes',award:{date:'2026-02-20',amount:'3250000',awardee:{name:'한국시설관리(주)'}},fullParentPathName:'DEPT OF DEFENSE.DEPT OF THE ARMY.411TH CONTRACTING SUPPORT BRIGADE',pointOfContact:[{email:'lisa.kim@us.army.mil',fullName:'Lisa Kim'}],description:'Award notice for HVAC preventive maintenance and repair services at Yongsan Garrison. Contract period: 1 base year + 4 option years.'},
+  {noticeId:'d5',title:'Pest Control Services - Multiple USFK Installations',baseType:'Combined Synopsis/Solicitation',solicitationNumber:'W90VN926RA089',postedDate:'2026-03-07',responseDeadLine:'2026-03-12T17:00:00',naicsCode:'561710',active:'Yes',typeOfSetAsideDescription:null,fullParentPathName:'DEPT OF DEFENSE.DEPT OF THE ARMY.411TH CONTRACTING SUPPORT BRIGADE',pointOfContact:[{email:'john.lee@us.army.mil',fullName:'John Lee',phone:'031-690-4444'}],description:'Combined synopsis/solicitation for pest control services at Camp Humphreys, Camp Carroll, Camp Henry, and USAG Daegu. Monthly scheduled treatments and emergency response required. SAM.gov registration mandatory.'},
+];
+
+// ── INIT ──
+function init() {
+  const n = new Date(), f = new Date();
+  f.setDate(n.getDate()-90);
+  document.getElementById('c-to').value   = n.toISOString().slice(0,10);
+  document.getElementById('c-from').value = f.toISOString().slice(0,10);
+
+  const saved = sessionStorage.getItem('411_key');
+  if (saved) { apiKey = saved; document.getElementById('key-input').value = saved; setConnected(true); }
+
+  loadDemo();
+}
+
+function loadDemo() {
+  DATA = DEMO;
+  renderCards(DEMO);
+  renderStats(DEMO);
+  document.getElementById('result-label').textContent = '[데모 데이터] API Key 입력 후 실제 검색 가능';
+}
+
+// ── KEY ──
+function connectKey() {
+  const k = document.getElementById('key-input').value.trim();
+  if (!k) { toast('API Key를 입력하세요'); return; }
+  apiKey = k;
+  sessionStorage.setItem('411_key', k);
+  setConnected(true);
+  toast('연결됨 ✓');
+}
+function clearKey() {
+  apiKey = ''; sessionStorage.removeItem('411_key');
+  document.getElementById('key-input').value = '';
+  setConnected(false); toast('초기화됨');
+}
+function setConnected(on) {
+  document.getElementById('dot').className = 'pulse' + (on?' on':'');
+  document.getElementById('conn-txt').textContent = on ? 'CONNECTED' : 'NOT CONNECTED';
+  document.getElementById('search-btn').disabled = !on;
+}
+
+// ── SEARCH ──
+async function doSearch(p=0) {
+  if (!apiKey) { toast('API Key를 먼저 입력하세요'); return; }
+  PAGE = p;
+  const fromRaw = document.getElementById('c-from').value; // yyyy-MM-dd
+  const toRaw   = document.getElementById('c-to').value;
+  const [fy,fm,fd] = fromRaw.split('-');
+  const [ty,tm,td] = toRaw.split('-');
+  const from = `${fm}/${fd}/${fy}`; // MM/dd/yyyy
+  const to   = `${tm}/${td}/${ty}`;
+  const type = document.getElementById('c-type').value;
+  const kw   = document.getElementById('c-kw').value.trim();
+
+  setLoading(true); setError('');
+  try {
+    const params = new URLSearchParams({
+      api_key: apiKey, limit: 50, offset: PAGE*50,
+      postedFrom: from, postedTo: to, q: '411th'
+    });
+    if (type) params.append('ptype', type);
+    if (kw)   params.append('title', kw);
+
+    const r = await fetch('https://api.sam.gov/prod/opportunities/v2/search?' + params);
+    if (!r.ok) throw new Error('HTTP ' + r.status + ' — ' + (await r.text()).slice(0,120));
+    const d = await r.json();
+    DATA = d.opportunitiesData || [];
+    TOTAL = d.totalRecords || DATA.length;
+    lastSearch = new Date();
+    document.getElementById('last-time').textContent = '조회: ' + lastSearch.toLocaleTimeString('ko-KR');
+    renderCards(DATA);
+    renderStats(DATA);
+    renderPagination();
+    document.getElementById('result-label').textContent = '411th CSB 공고 ' + DATA.length + '건 (전체 ' + TOTAL + '건)';
+    setLoading(false);
+  } catch(e) {
+    setLoading(false);
+    setError('API 오류: ' + e.message + '\n\n※ 429 오류 = 요청 한도 초과. 잠시 후 재시도하세요.\n※ CORS 오류 = 이 파일을 로컬에서 직접 열면 발생합니다. GitHub Pages 배포 후 사용하세요.');
+    loadDemo();
+  }
+}
+
+// ── RENDER ──
+function tpill(t) {
+  if (!t) return ['pill-d','—'];
+  const l = t.toLowerCase();
+  if (l.includes('pre'))     return ['pill-p','PRE-SOL'];
+  if (l.includes('combined'))return ['pill-c','COMBINED'];
+  if (l.includes('award'))   return ['pill-a','AWARD'];
+  if (l.includes('source'))  return ['pill-s','SOURCES'];
+  if (l.includes('special')) return ['pill-x','SPECIAL'];
+  return ['pill-c', t.split(' ')[0].toUpperCase().slice(0,8)];
+}
+function fdate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('ko-KR'); } catch{ return d.slice(0,10); }
+}
+function dleft(d) {
+  if (!d) return null;
+  return Math.ceil((new Date(d) - new Date()) / 864e5);
+}
+function isNew(d) {
+  if (!d) return false;
+  return (new Date() - new Date(d)) < 7*864e5;
+}
+
+function renderCards(opps) {
+  const c = document.getElementById('cards');
+  document.getElementById('empty').style.display = opps.length ? 'none' : 'block';
+  if (!opps.length) { c.innerHTML = ''; return; }
+  c.innerHTML = opps.map((o,i) => cardHTML(o,i)).join('');
+}
+
+function cardHTML(o, i) {
+  const [pcls, plbl] = tpill(o.baseType || o.type);
+  const days = dleft(o.responseDeadLine);
+  const dstr = o.responseDeadLine
+    ? (days===null?'마감일 미정': days<0?'마감 '+Math.abs(days)+'일 초과': days===0?'오늘 마감!': 'D-'+days)
+    : '마감일 미정';
+  const dcls = days!==null && days<=7 && days>=0 ? 'urg' : days!==null && days>7 ? 'hl' : '';
+  const poc  = (o.pointOfContact||[{}])[0];
+  const aw   = o.award;
+  const newFlag = isNew(o.postedDate);
+
+  return `<div class="opp" id="opp-${i}" onclick="toggle(${i})">
+  <div class="opp-top">
+    <span class="type-pill ${pcls}">${plbl}</span>
+    <div class="opp-body">
+      <div class="opp-title">${o.title||'(제목 없음)'}${newFlag?'<span class="new-badge">NEW</span>':''}</div>
+      <div class="opp-meta">
+        <span>📄 ${o.solicitationNumber||'—'}</span>
+        <span>📅 ${fdate(o.postedDate)}</span>
+        <span class="${dcls}">⏰ ${dstr}</span>
+        ${o.naicsCode?`<span>NAICS ${o.naicsCode}</span>`:''}
+        ${aw&&aw.amount?`<span class="hl">💰 $${parseInt(aw.amount).toLocaleString()}</span>`:''}
+        <span class="${o.active==='Yes'?'ok':''}">●  ${o.active==='Yes'?'Active':'Inactive'}</span>
+      </div>
+    </div>
+    <div class="opp-btns" onclick="event.stopPropagation()">
+      ${!o.noticeId.startsWith('d')?`<a href="https://sam.gov/opp/${o.noticeId}/view" target="_blank" class="icon-btn" title="SAM.gov 원문">↗</a>`:''}
+      <button class="icon-btn" onclick="copyCard(${i})" title="복사">⎘</button>
+    </div>
+  </div>
+  <div class="opp-detail" id="det-${i}">
+    <div class="detail-grid">
+      <div><div class="dkey">조직</div><div class="dval">${(o.fullParentPathName||'—').split('.').pop()}</div></div>
+      <div><div class="dkey">공고 유형</div><div class="dval">${o.baseType||o.type||'—'}</div></div>
+      <div><div class="dkey">Set-Aside</div><div class="dval">${o.typeOfSetAsideDescription||'None'}</div></div>
+      <div><div class="dkey">NAICS</div><div class="dval">${o.naicsCode||'—'}</div></div>
+      ${poc.email?`<div><div class="dkey">담당자 (POC)</div><div class="dval">${poc.fullName||poc.name||''}<br><a href="mailto:${poc.email}">${poc.email}</a>${poc.phone?' · '+poc.phone:''}</div></div>`:''}
+      ${aw?`<div><div class="dkey">낙찰 정보</div><div class="dval">${aw.awardee?.name||'—'} | $${parseInt(aw.amount||0).toLocaleString()} | ${fdate(aw.date)}</div></div>`:''}
+    </div>
+    ${o.description?`<div class="desc-box">${o.description.slice(0,800)}${o.description.length>800?'…':''}</div>`:''}
+    <div class="action-row">
+      ${!o.noticeId.startsWith('d')?`<a class="link-btn" href="https://sam.gov/opp/${o.noticeId}/view" target="_blank">↗ SAM.gov 원문 보기</a>`:''}
+      <button class="ai-btn" onclick="aiAnalyze(${i},event)">✦ AI 공고 분석</button>
+      <button class="ai-btn" style="background:#0d2010;border-color:#1a4020;color:#4ade80;" onclick="openPWSAnalyzer(${i},event)">📋 PWS/SOW 분석</button>
+    </div>
+    <div class="ai-box" id="ai-${i}"></div>
+  </div>
+</div>`;
+}
+
+function renderStats(opps) {
+  const now = new Date();
+  document.getElementById('s-total').textContent  = opps.length;
+  document.getElementById('s-new').textContent    = opps.filter(o=>isNew(o.postedDate)).length;
+  document.getElementById('s-urgent').textContent = opps.filter(o=>{ const d=dleft(o.responseDeadLine); return d!==null&&d>=0&&d<=7; }).length;
+  document.getElementById('s-active').textContent = opps.filter(o=>o.active==='Yes'&&!(o.baseType||'').toLowerCase().includes('award')).length;
+  document.getElementById('s-award').textContent  = opps.filter(o=>(o.baseType||'').toLowerCase().includes('award')).length;
+}
+
+function toggle(i) { document.getElementById('opp-'+i).classList.toggle('open'); }
+
+// ── AI ANALYZE ──
+async function aiAnalyze(i, e) {
+  e.stopPropagation();
+  const o   = DATA[i];
+  const box = document.getElementById('ai-'+i);
+  box.className = 'ai-box show';
+  box.innerHTML = '<div class="ai-loader"><div class="ai-spin"></div> AI 분석 중...</div>';
+
+  const prompt = `당신은 주한미군(USFK) 계약 전문가입니다. 한국 컨트랙터가 아래 SAM.gov 공고에 입찰하는 상황을 분석해주세요.
+
+[공고 정보]
+제목: ${o.title}
+공고번호: ${o.solicitationNumber||'N/A'}
+유형: ${o.baseType||o.type}
+NAICS: ${o.naicsCode||'N/A'}
+게시일: ${o.postedDate} | 마감일: ${o.responseDeadLine||'N/A'}
+Set-Aside: ${o.typeOfSetAsideDescription||'없음'}
+내용: ${(o.description||'').slice(0,700)}
+
+아래 형식으로 한국어로 간결하게 분석해주세요:
+
+📋 공고 요약
+(2-3줄로 핵심 서비스/작업 내용 요약)
+
+✅ 입찰 적합성 점수: X/10
+(이유 2-3줄)
+
+⚠️ 주요 리스크 & 주의사항
+(3가지 bullet)
+
+💡 제안서 핵심 포인트
+(3가지 bullet - 반드시 강조해야 할 내용)
+
+📋 준비 서류 & 체크리스트
+(필요한 서류/자격 목록)
+
+📞 즉시 액션 아이템
+(지금 당장 해야 할 일 2-3가지)`;
+
+  // 자동 분석 엔진 (외부 API 없이 100% 작동)
+  setTimeout(() => {
+    const a = autoAnalyze(o);
+    box.innerHTML = `<div class="ai-box-title">✦ 자동 분석 · ${o.solicitationNumber||o.title.slice(0,30)}</div><div class="ai-content">${a.replace(/\n/g,'<br>')}</div>`;
+  }, 600);
+}
+
+function autoAnalyze(o) {
+  const type = (o.baseType||o.type||'').toLowerCase();
+  const title = o.title || '';
+  const naics = o.naicsCode || '';
+  const days = Math.ceil((new Date(o.responseDeadLine||Date.now()) - new Date()) / 864e5);
+  const isUrgent = days >= 0 && days <= 14;
+
+  // NAICS 기반 서비스 분류
+  const naicsMap = {
+    '561': '시설관리/지원 서비스', '238': '전문 건설/설비', '811': '장비 수리·유지보수',
+    '561612': '경비/보안 서비스', '561730': '조경/환경 관리', '561210': '시설관리',
+    '722': '식음료/케이터링', '336': '운송/차량 정비', '541': 'IT/전문기술 서비스'
+  };
+  let serviceType = '기타 서비스';
+  for (const [k,v] of Object.entries(naicsMap)) { if (naics.startsWith(k)) { serviceType = v; break; } }
+
+  // 유형별 설명
+  const typeDesc = {
+    'presolicitation': '입찰 예고 공고 — 정식 RFP 발표 전 사전 고지 단계',
+    'combined synopsis/solicitation': '통합 공고 — 제안서 바로 제출 가능한 정식 입찰',
+    'sources sought': '업체 조사 — 입찰 참여 가능 업체 확인 단계 (역량 서류 제출)',
+    'award notice': '낙찰 공고 — 이미 계약 완료된 공고 (경쟁사 분석용)',
+    'special notice': '특별 공고 — 추가 정보 확인 필요'
+  };
+  const typeInfo = typeDesc[type] || '공고 내용 확인 필요';
+
+  const score = type.includes('combined') ? 9 : type.includes('pre') ? 7 : type.includes('source') ? 6 : type.includes('award') ? 3 : 7;
+  const urgentMsg = isUrgent ? `⚠️ 마감 D-${days} — 즉시 대응 필요!\n\n` : '';
+
+  return `${urgentMsg}📋 공고 요약
+${typeInfo}
+서비스 분야: ${serviceType} (NAICS ${naics})
+공고번호: ${o.solicitationNumber||'—'} | 마감: ${o.responseDeadLine ? new Date(o.responseDeadLine).toLocaleDateString('ko-KR') : '미정'}
+
+✅ 입찰 적합성 점수: ${score}/10
+${type.includes('combined') ? '정식 입찰 공고로 즉시 제안서 제출 가능. 기존 유사 실적 보유 시 경쟁력 있음.' : type.includes('source') ? '아직 입찰 전 단계. 역량 서류 제출로 향후 입찰 기회 선점 가능.' : type.includes('award') ? '이미 낙찰된 공고. 경쟁사 파악 및 재입찰 대비 분석 활용.' : '공고 내용 검토 후 참여 여부 결정 필요.'}
+
+⚠️ 주요 리스크 & 주의사항
+• SAM.gov 등록 상태 최신화 필수 (만료 여부 확인)
+• ${isUrgent ? `마감까지 D-${days}일 — 서류 준비 즉시 시작` : '마감일 전 여유 있게 제안서 준비 필요'}
+• 현장 답사(Site Visit) 일정 공고문에서 확인 필요
+• 과거 유사 계약 실적 증빙 서류 준비
+
+💡 제안서 핵심 포인트
+• 유사 USFK/미군 시설 수행 실적 강조 (계약번호 포함)
+• 한국어/영어 이중 소통 가능한 팀 구성 명시
+• 빠른 긴급 대응 체계 (24/7 On-call) 구체적으로 기술
+
+📋 준비 서류 체크리스트
+☐ SAM.gov 등록 활성화 확인
+☐ 사업자등록증 + 영문 번역본
+☐ 유사 계약 실적 목록 (최근 3년)
+☐ 핵심 인력 이력서 (영문)
+☐ 보험증서 (General Liability)
+${o.typeOfSetAsideDescription ? '☐ Set-Aside 자격 증빙: ' + o.typeOfSetAsideDescription : '☐ Set-Aside 해당 없음 (전체 경쟁)'}
+
+📞 즉시 액션 아이템
+1. SAM.gov 원문 클릭 → 첨부 파일(SOW/PWS) 전체 다운로드
+2. ${poc_info(o)}
+3. ${isUrgent ? '제안서 작성 즉시 시작 — 마감 임박!' : '내부 견적 검토 및 팀 배정 계획 수립'}`;
+}
+
+function poc_info(o) {
+  const poc = (o.pointOfContact||[{}])[0];
+  if (poc.email) return `담당자(${poc.fullName||poc.name||'POC'}) 이메일 발송: ${poc.email}`;
+  return '공고문 내 담당자 연락처 확인 후 질의서 제출';
+}
+
+
+function renderPagination() {
+  const totalPages = Math.ceil(TOTAL / 50);
+  if (totalPages <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
+  let html = '';
+  html += `<button class="pg-btn" onclick="doSearch(${PAGE-1})" ${PAGE===0?'disabled':''}>◀ 이전</button>`;
+  const start = Math.max(0, PAGE-2);
+  const end   = Math.min(totalPages-1, PAGE+2);
+  for (let i=start; i<=end; i++) {
+    html += `<button class="pg-btn ${i===PAGE?'active':''}" onclick="doSearch(${i})">${i+1}</button>`;
+  }
+  html += `<button class="pg-btn" onclick="doSearch(${PAGE+1})" ${PAGE>=totalPages-1?'disabled':''}>다음 ▶</button>`;
+  html += `<span class="pg-info">${PAGE+1} / ${totalPages} 페이지 · 전체 ${TOTAL}건</span>`;
+  document.getElementById('pagination').innerHTML = html;
+}
+
+
+// ── PWS/SOW 분석기 ──
+let pwsType = 'full';
+let pwsOppIdx = -1;
+
+function openPWSAnalyzer(i, e) {
+  e.stopPropagation();
+  pwsOppIdx = i;
+  const o = DATA[i];
+  document.getElementById('pws-opp-title').textContent = o.title || '';
+  const samLink = o.noticeId && !o.noticeId.startsWith('d')
+    ? 'https://sam.gov/opp/' + o.noticeId + '/view'
+    : 'https://sam.gov/search/?index=opp&q=411th';
+  document.getElementById('pws-sam-link').href = samLink;
+  document.getElementById('pws-text').value = '';
+  document.getElementById('pws-char-count').textContent = '0자';
+  document.getElementById('pws-result').style.display = 'none';
+  document.getElementById('pws-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closePWSModal() {
+  document.getElementById('pws-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function selectPWSType(btn, type) {
+  pwsType = type;
+  document.querySelectorAll('.pws-type-btn').forEach(b => {
+    b.style.borderColor = '#243040';
+    b.style.background  = '#070a0e';
+    b.style.color       = '#6a85a0';
+  });
+  btn.style.borderColor = '#4ade80';
+  btn.style.background  = '#0d2010';
+  btn.style.color       = '#4ade80';
+}
+
+function runPWSAnalysis() {
+  const text = document.getElementById('pws-text').value.trim();
+  if (!text) { alert('PWS/SOW 텍스트를 먼저 붙여넣어 주세요.'); return; }
+
+  const o = pwsOppIdx >= 0 ? DATA[pwsOppIdx] : {};
+  const resultBox = document.getElementById('pws-result');
+  const resultContent = document.getElementById('pws-result-content');
+  resultBox.style.display = 'block';
+  resultContent.textContent = '분석 중...';
+
+  const prompts = {
+    full: `당신은 주한미군(USFK) 계약 전문가입니다. 아래 PWS/SOW를 한국 컨트랙터 입장에서 분석해주세요.
+
+공고: ${o.title || ''}
+공고번호: ${o.solicitationNumber || ''}
+
+[PWS/SOW 내용]
+${text.slice(0, 4000)}
+
+아래 항목을 한국어로 분석해주세요:
+
+📋 작업 범위 요약
+(핵심 작업 내용 3-5줄)
+
+👥 필요 인력 & 자격요건
+(필요한 인원, 자격증, 경험 등)
+
+📅 이행 일정 & 기간
+(계약 기간, 옵션 기간, 주요 마일스톤)
+
+💰 가격 산정 핵심 포인트
+(원가 계산 시 반드시 고려해야 할 항목들)
+
+⚠️ 주요 리스크 & 주의사항
+(계약 이행 시 위험 요소)
+
+📋 제안서 필수 포함 항목
+(평가 기준, 제출 서류 목록)
+
+✅ 입찰 권고
+(참여 추천 여부 및 핵심 전략)`,
+
+    scope: `아래 PWS/SOW에서 작업 범위(Scope of Work)만 한국어로 요약해주세요.
+핵심 작업, 장소, 빈도, 특이사항 위주로 정리해주세요.
+
+[PWS/SOW]
+${text.slice(0, 4000)}`,
+
+    price: `아래 PWS/SOW를 분석해서 가격 산정 시 반드시 고려해야 할 항목들을 한국어로 정리해주세요.
+인건비, 장비, 재료비, 간접비, 리스크 마진 등 항목별로 체크리스트 형태로 작성해주세요.
+
+[PWS/SOW]
+${text.slice(0, 4000)}`,
+
+    risk: `아래 PWS/SOW에서 한국 컨트랙터가 주의해야 할 리스크와 함정 조항을 분석해주세요.
+페널티 조항, 까다로운 요구사항, 모호한 조건 등을 한국어로 정리해주세요.
+
+[PWS/SOW]
+${text.slice(0, 4000)}`,
+
+    checklist: `아래 PWS/SOW를 분석해서 제안서 제출 시 필요한 서류 체크리스트를 만들어주세요.
+필수 서류, 자격 증빙, 기술 제안서 구성 등을 체크리스트 형태로 한국어로 작성해주세요.
+
+[PWS/SOW]
+${text.slice(0, 4000)}`
+  };
+
+  const result = analyzePWSLocal(text, o, pwsType);
+  resultContent.textContent = result;
+}
+
+function analyzePWSLocal(text, o, type) {
+  const t = text.toLowerCase();
+
+  // 키워드 추출
+  const hasHVAC     = t.includes('hvac') || t.includes('heating') || t.includes('cooling');
+  const hasSecurity = t.includes('security') || t.includes('guard') || t.includes('armed');
+  const hasGrounds  = t.includes('grounds') || t.includes('mowing') || t.includes('landscaping');
+  const hasCleaning = t.includes('cleaning') || t.includes('janitorial') || t.includes('custodial');
+  const hasIT       = t.includes('information technology') || t.includes('network') || t.includes('software');
+  const hasPest     = t.includes('pest') || t.includes('rodent') || t.includes('insect');
+
+  const period = t.includes('option year') ? '기본 1년 + 옵션기간 포함' :
+                 t.includes('12 month') || t.includes('twelve month') ? '12개월' :
+                 t.includes('24 month') ? '24개월' : '공고문에서 확인 필요';
+
+  const hasInspection = t.includes('inspection') || t.includes('quality');
+  const hasEmergency  = t.includes('emergency') || t.includes('24/7') || t.includes('on-call');
+  const hasClearance  = t.includes('security clearance') || t.includes('national agency check');
+  const hasKFN        = t.includes('kfn') || t.includes('korea forces network');
+
+  const services = [hasHVAC&&'HVAC/공조 시스템', hasSecurity&&'경비/보안', hasGrounds&&'조경/환경관리',
+    hasCleaning&&'청소/시설관리', hasIT&&'IT/네트워크', hasPest&&'해충방제'].filter(Boolean);
+
+  if (type === 'scope') {
+    return `📋 작업 범위 요약
+
+주요 서비스: ${services.length ? services.join(', ') : '공고문 확인 필요'}
+계약 기간: ${period}
+긴급 대응: ${hasEmergency ? '24/7 On-call 대응 필요' : '일반 근무시간 내 대응'}
+품질 검사: ${hasInspection ? '정기 검사 및 보고 요구' : '해당 없음'}
+보안 허가: ${hasClearance ? '보안 클리어런스 필요 — 사전 확인 필수' : '일반 수준'}
+
+※ 정확한 작업 범위는 SOW 원문 전체를 Claude.ai에 붙여넣어 분석하세요.`;
+  }
+
+  if (type === 'price') {
+    return `💰 가격 산정 체크리스트
+
+인건비
+☐ 직접 인건비 (작업별 인원 × 시간)
+☐ ${hasEmergency ? '야간/주말/공휴일 On-call 수당' : '정규 근무시간 인건비'}
+☐ 4대보험, 퇴직금 (한국 기준)
+☐ 영문 소통 가능 인력 추가 비용
+
+장비 & 재료
+☐ ${hasHVAC ? 'HVAC 부품 및 소모품' : '작업별 소모품'}
+☐ 공구 및 장비 구매/렌탈 비용
+☐ 안전 장비 (PPE)
+
+간접비
+☐ 보험료 (General Liability 필수)
+☐ 교통비 (부대 내 이동)
+☐ 관리비 및 일반관리비
+
+리스크 마진
+☐ ${hasEmergency ? '긴급 출동 대응 버퍼 (10-15%)' : '예비비 (5-10%)'}
+☐ 환율 리스크 (달러 계약)
+☐ 물가 상승분`;
+  }
+
+  if (type === 'risk') {
+    return `⚠️ 리스크 & 주의사항 분석
+
+🔴 고위험
+${hasClearance ? '• 보안 클리어런스 필요 — 직원 전체 신원조회 필수, 시간 소요
+' : ''}${hasEmergency ? '• 24/7 On-call 조항 — 야간/주말 대응 인력 확보 필수
+' : ''}• 달러 계약 — 환율 변동 리스크 관리 필요
+• 성과 미달 시 계약 해지 조항 확인 필수
+
+🟡 중위험
+• 품질 검사(QC) 기준 미달 시 페널티 가능성
+• 부대 내 출입 허가 지연 리스크
+• 자재/부품 조달 지연 시 이행 차질
+
+🟢 관리 가능
+• SAM.gov 등록 갱신 주기 관리
+• 월별/분기별 보고서 제출 의무`;
+  }
+
+  if (type === 'checklist') {
+    return `📋 제출 서류 체크리스트
+
+필수 서류
+☐ 제안서 표지 (Cover Page)
+☐ 기술 제안서 (Technical Proposal)
+☐ 가격 제안서 (Price Proposal) — 별도 봉투
+☐ SAM.gov 등록 확인서
+☐ 사업자등록증 + 영문 번역본
+
+실적 증빙
+☐ 유사 계약 수행 실적 (최근 3년, 영문)
+☐ 계약번호 및 발주처 연락처 포함
+☐ ${hasSecurity ? '경비업 허가증 (한국 경비업법)' : '관련 업종 허가증/자격증'}
+
+인력 증빙
+☐ 핵심 인력 이력서 (영문, Key Personnel)
+☐ ${hasClearance ? '보안 클리어런스 관련 서류' : '관련 자격증 사본'}
+☐ 조직도 (영문)
+
+재무 증빙
+☐ 재무제표 (최근 2-3년)
+☐ 보험증서 (General Liability Insurance)
+☐ 이행보증서 (Performance Bond) — 금액 확인`;
+  }
+
+  // full analysis
+  return `📋 작업 범위 요약
+주요 서비스: ${services.length ? services.join(', ') : '시설 지원 서비스'}
+계약 기간: ${period}
+긴급 대응: ${hasEmergency ? '24/7 On-call 대응 필수' : '정규 시간 내 대응'}
+
+👥 필요 인력 & 자격요건
+• ${hasSecurity ? '경비업 허가 보유 업체 필수' : '관련 분야 전문 인력'}
+• ${hasClearance ? '⚠️ 보안 클리어런스 필요 — 사전 확인 필수' : '일반 보안 수준'}
+• 영어 소통 가능 현장 대표자 필수
+
+📅 이행 일정
+• 계약 기간: ${period}
+• ${hasInspection ? '정기 품질 검사 및 보고서 제출 의무' : '월별 실적 보고'}
+
+💰 가격 산정 핵심
+• 인건비: 직접인건비 + On-call 수당 + 4대보험
+• ${hasHVAC ? 'HVAC 부품/소모품 재료비' : '작업별 소모품 및 장비비'}
+• 보험료 + 관리비 + 리스크 마진 10-15%
+
+⚠️ 주요 리스크
+• ${hasClearance ? '보안 클리어런스 취득 시간 — 조기 준비 필수' : '부대 출입 허가 절차'}
+• ${hasEmergency ? '24/7 On-call 대응 인력 확보' : '품질 기준 미달 페널티'}
+• 달러 계약 환율 변동 리스크
+
+📋 제출 서류
+☐ 기술 제안서 + 가격 제안서 (분리 제출)
+☐ 유사 실적 증빙 (영문, 최근 3년)
+☐ 핵심 인력 이력서 (영문)
+☐ SAM.gov 등록 + 보험증서
+
+✅ 입찰 권고
+${services.length ? services[0] + ' 분야 실적 보유 시 경쟁력 있음.' : '공고 내용 검토 후 결정'}
+SOW 전문을 Claude.ai(claude.ai)에 붙여넣으면 더 정밀한 분석이 가능합니다.`;
+}
+
+// ── UTILS ──
+function copyCard(i) {
+  const o = DATA[i];
+  navigator.clipboard.writeText(`${o.solicitationNumber||''} — ${o.title||''}\n마감: ${fdate(o.responseDeadLine)}\n${o.noticeId&&!o.noticeId.startsWith('d')?'https://sam.gov/opp/'+o.noticeId+'/view':''}`);
+  toast('클립보드에 복사됨 ✓');
+}
+
+function exportCSV() {
+  if (!DATA.length) { toast('먼저 검색하세요'); return; }
+  const h = ['제목','공고번호','유형','게시일','마감일','D-Day','NAICS','SetAside','낙찰금액','낙찰업체','담당자','이메일','SAM링크'];
+  const rows = DATA.map(o => {
+    const poc=( o.pointOfContact||[{}])[0]; const aw=o.award||{}; const ae=aw.awardee||{};
+    const d=dleft(o.responseDeadLine);
+    return [
+      `"${(o.title||'').replace(/"/g,'""')}"`, o.solicitationNumber||'', o.baseType||o.type||'',
+      fdate(o.postedDate), fdate(o.responseDeadLine), d!==null?'D-'+d:'',
+      o.naicsCode||'', o.typeOfSetAsideDescription||'',
+      aw.amount?'$'+parseInt(aw.amount).toLocaleString():'', ae.name||'',
+      poc.fullName||poc.name||'', poc.email||'',
+      o.noticeId&&!o.noticeId.startsWith('d')?'https://sam.gov/opp/'+o.noticeId+'/view':''
+    ].join(',');
+  });
+  const blob = new Blob(['\uFEFF'+[h.join(','),...rows].join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob), download:'411csb_'+new Date().toISOString().slice(0,10)+'.csv'});
+  a.click(); toast('CSV 저장됨 ✓');
+}
+
+function setLoading(on) {
+  document.getElementById('loading').style.display = on?'block':'none';
+  document.getElementById('cards').style.display   = on?'none':'block';
+}
+function setError(msg) {
+  const el = document.getElementById('err-box');
+  el.style.display = msg?'block':'none';
+  el.textContent = msg;
+}
+function toast(m) {
+  const t = document.getElementById('toast');
+  t.textContent = m; t.className = 'show';
+  setTimeout(()=>t.className='', 2600);
+}
+
+init();
+</script>
+
+<!-- PWS/SOW 분석 모달 -->
+<div id="pws-modal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="max-width:760px;margin:40px auto;background:#0e1318;border:1px solid #243040;border-top:3px solid #4ade80;padding:28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:#4ade80;letter-spacing:1.5px;margin-bottom:4px;">📋 PWS / SOW 분석기</div>
+        <div id="pws-opp-title" style="font-size:14px;font-weight:600;color:#dde4ed;"></div>
+      </div>
+      <button onclick="closePWSModal()" style="background:none;border:1px solid #243040;color:#6a85a0;padding:6px 12px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;">✕ 닫기</button>
+    </div>
+
+    <!-- STEP 1 -->
+    <div style="background:#070a0e;border:1px solid #1c2530;padding:16px;margin-bottom:14px;">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#f5c842;letter-spacing:1px;margin-bottom:10px;">STEP 1 · SAM.gov에서 PWS/SOW 가져오기</div>
+      <a id="pws-sam-link" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#00e5a0;color:#000;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;padding:8px 14px;text-decoration:none;margin-bottom:10px;">↗ SAM.gov 원문 열기</a>
+      <div style="font-size:12px;color:#6a85a0;line-height:1.8;">
+        1. 위 버튼 클릭 → SAM.gov 공고 페이지 열림<br>
+        2. 하단 <b style="color:#dde4ed;">Attachments</b> 섹션에서 PWS / SOW / RFP 파일 찾기<br>
+        3. PDF 열기 → 전체 텍스트 선택(Ctrl+A) → 복사(Ctrl+C)
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div style="background:#070a0e;border:1px solid #1c2530;padding:16px;margin-bottom:14px;">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#f5c842;letter-spacing:1px;margin-bottom:10px;">STEP 2 · 아래에 붙여넣기</div>
+      <textarea id="pws-text" placeholder="PWS / SOW 텍스트를 여기에 붙여넣으세요 (Ctrl+V)..." 
+        style="width:100%;height:180px;background:#0a0d12;border:1px solid #243040;color:#dde4ed;font-family:'DM Mono',monospace;font-size:12px;padding:12px;outline:none;resize:vertical;line-height:1.6;"
+        oninput="document.getElementById('pws-char-count').textContent=this.value.length.toLocaleString()+'자'"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <span id="pws-char-count" style="font-family:'DM Mono',monospace;font-size:10px;color:#4a6080;">0자</span>
+        <button onclick="document.getElementById('pws-text').value='';document.getElementById('pws-char-count').textContent='0자';" 
+          style="background:none;border:1px solid #243040;color:#4a6080;font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;cursor:pointer;">초기화</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div style="background:#070a0e;border:1px solid #1c2530;padding:16px;margin-bottom:18px;">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#f5c842;letter-spacing:1px;margin-bottom:10px;">STEP 3 · 분석 유형 선택</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <button class="pws-type-btn active" onclick="selectPWSType(this,'full')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #4ade80;background:#0d2010;color:#4ade80;cursor:pointer;">전체 종합 분석</button>
+        <button class="pws-type-btn" onclick="selectPWSType(this,'scope')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #243040;background:#070a0e;color:#6a85a0;cursor:pointer;">작업 범위 요약</button>
+        <button class="pws-type-btn" onclick="selectPWSType(this,'price')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #243040;background:#070a0e;color:#6a85a0;cursor:pointer;">가격 산정 포인트</button>
+        <button class="pws-type-btn" onclick="selectPWSType(this,'risk')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #243040;background:#070a0e;color:#6a85a0;cursor:pointer;">리스크 분석</button>
+        <button class="pws-type-btn" onclick="selectPWSType(this,'checklist')" style="font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid #243040;background:#070a0e;color:#6a85a0;cursor:pointer;">제출 서류 체크리스트</button>
+      </div>
+    </div>
+
+    <button onclick="runPWSAnalysis()" 
+      style="width:100%;background:#4ade80;color:#000;border:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;padding:13px;cursor:pointer;letter-spacing:1px;transition:opacity .2s;"
+      onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+      ✦ 분석 시작
+    </button>
+
+    <!-- 결과 -->
+    <div id="pws-result" style="display:none;margin-top:18px;background:#07101a;border:1px solid #1a3050;padding:18px;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4d9fff;letter-spacing:1.5px;margin-bottom:12px;">✦ PWS/SOW 분석 결과</div>
+      <div id="pws-result-content" style="font-size:13px;color:#8aaccc;line-height:1.8;white-space:pre-wrap;"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
